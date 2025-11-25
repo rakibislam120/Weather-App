@@ -3,7 +3,7 @@ import axios from "axios";
 import { WiDaySunny, WiCloud, WiRain, WiSnow, WiHumidity, WiStrongWind, WiBarometer } from "react-icons/wi";
 import { FiSearch, FiMapPin, FiSunrise, FiSunset } from "react-icons/fi";
 import { BsThermometerHalf } from "react-icons/bs";
-import "./App.css"; // CSS file create korte hobe
+import "./App.css";
 
 export default function App() {
   const [city, setCity] = useState("");
@@ -60,7 +60,10 @@ export default function App() {
   };
 
   const getWeather = async () => {
-    if (!city.trim()) return;
+    if (!city.trim()) {
+      setError("Please enter a city name");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -69,6 +72,7 @@ export default function App() {
       );
       setWeather(res.data);
       setError("");
+      setCity(""); // Search bar clear after successful search
     } catch {
       setError("City not found! Please try again.");
       setWeather(null);
@@ -90,7 +94,8 @@ export default function App() {
     if (main.includes("snow")) return <WiSnow size={100} color="#E2E8F0" />;
     if (main.includes("clear")) return <WiDaySunny size={100} color="#FFD700" />;
     if (main.includes("thunderstorm")) return <WiRain size={100} color="#1E40AF" />;
-    if (main.includes("haze")) return <WiCloud size={100} color="#CBD5E1" />;
+    if (main.includes("drizzle")) return <WiRain size={80} color="#60A5FA" />;
+    if (main.includes("mist") || main.includes("fog") || main.includes("haze")) return <WiCloud size={100} color="#CBD5E1" />;
     return <WiDaySunny size={100} color="#FFD700" />;
   };
 
@@ -99,11 +104,11 @@ export default function App() {
     const main = weather.weather[0].main.toLowerCase();
     
     if (main.includes("cloud")) return "linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%)";
-    if (main.includes("rain")) return "linear-gradient(135deg, #1E3A8A 0%, #1E40AF 50%, #3B82F6 100%)";
+    if (main.includes("rain") || main.includes("drizzle")) return "linear-gradient(135deg, #1E3A8A 0%, #1E40AF 50%, #3B82F6 100%)";
     if (main.includes("snow")) return "linear-gradient(135deg, #374151 0%, #4B5563 50%, #6B7280 100%)";
     if (main.includes("clear")) return "linear-gradient(135deg, #0C4A6E 0%, #0369A1 50%, #0EA5E9 100%)";
     if (main.includes("thunderstorm")) return "linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4338CA 100%)";
-    if (main.includes("haze")) return "linear-gradient(135deg, #374151 0%, #4B5563 50%, #6B7280 100%)";
+    if (main.includes("mist") || main.includes("fog") || main.includes("haze")) return "linear-gradient(135deg, #374151 0%, #4B5563 50%, #6B7280 100%)";
     
     return "linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%)";
   };
@@ -183,21 +188,15 @@ export default function App() {
           </p>
         </div>
 
-        {/* Search Box */}
+        {/* Search Box - FIXED */}
         <div style={{ 
-          position: "relative", 
           marginBottom: "20px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
           width: "100%"
         }}>
           <div style={{ 
             position: "relative", 
             marginBottom: "12px",
-            width: "100%",
-            maxWidth: "400px"
+            width: "100%"
           }}>
             <FiSearch style={{
               position: "absolute",
@@ -210,28 +209,32 @@ export default function App() {
             }} />
             <input
               type="text"
-              placeholder="Search city..."
+              placeholder="Enter city name..."
               value={city}
-              onChange={(e) => setCity(e.target.value)}
+              onChange={(e) => {
+                setCity(e.target.value);
+                setError(""); // Clear error when user starts typing
+              }}
               onKeyPress={handleKeyPress}
               style={{
                 width: "100%",
                 padding: "16px 16px 16px 48px",
                 borderRadius: "16px",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
+                border: error ? "1px solid rgba(239, 68, 68, 0.5)" : "1px solid rgba(255, 255, 255, 0.2)",
                 background: "rgba(30, 41, 59, 0.8)",
                 color: "#F8FAFC",
                 fontSize: "16px",
                 outline: "none",
                 backdropFilter: "blur(10px)",
                 transition: "all 0.3s ease",
+                boxSizing: "border-box"
               }}
               onFocus={(e) => {
                 e.target.style.borderColor = "rgba(96, 165, 250, 0.5)";
                 e.target.style.boxShadow = "0 0 0 3px rgba(96, 165, 250, 0.1)";
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = "rgba(255, 255, 255, 0.2)";
+                e.target.style.borderColor = error ? "rgba(239, 68, 68, 0.5)" : "rgba(255, 255, 255, 0.2)";
                 e.target.style.boxShadow = "none";
               }}
             />
@@ -239,24 +242,37 @@ export default function App() {
           
           <button
             onClick={getWeather}
-            disabled={loading}
+            disabled={loading || !city.trim()}
             style={{
               width: "100%",
-              maxWidth: "400px",
               padding: "16px",
               borderRadius: "16px",
               border: "none",
-              background: loading ? "rgba(51, 65, 85, 0.8)" : "linear-gradient(45deg, #3B82F6, #8B5CF6)",
-              color: "#FFFFFF",
+              background: loading ? "rgba(51, 65, 85, 0.8)" : 
+                         !city.trim() ? "rgba(51, 65, 85, 0.8)" : "linear-gradient(45deg, #3B82F6, #8B5CF6)",
+              color: loading || !city.trim() ? "rgba(255,255,255,0.5)" : "#FFFFFF",
               fontWeight: "600",
-              cursor: loading ? "not-allowed" : "pointer",
+              cursor: loading || !city.trim() ? "not-allowed" : "pointer",
               fontSize: "16px",
               transition: "all 0.3s ease",
+              boxSizing: "border-box"
             }}
-            onMouseOver={(e) => !loading && (e.target.style.transform = "translateY(-2px)")}
-            onMouseOut={(e) => !loading && (e.target.style.transform = "translateY(0)")}
+            onMouseOver={(e) => !loading && city.trim() && (e.target.style.transform = "translateY(-2px)")}
+            onMouseOut={(e) => !loading && city.trim() && (e.target.style.transform = "translateY(0)")}
           >
-            {loading ? "Searching..." : "Get Weather"}
+            {loading ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                <div style={{ 
+                  width: "16px", 
+                  height: "16px", 
+                  border: "2px solid transparent", 
+                  borderTop: "2px solid currentColor", 
+                  borderRadius: "50%", 
+                  animation: "spin 1s linear infinite" 
+                }} />
+                Searching...
+              </div>
+            ) : "Get Weather"}
           </button>
         </div>
 
@@ -290,71 +306,79 @@ export default function App() {
           className="slide-up"
           >
             {/* Location */}
-<div style={{ 
-  display: "flex", 
-  alignItems: "center", 
-  justifyContent: "center", 
-  marginBottom: "20px",
-  background: "rgba(30, 41, 59, 0.6)",
-  padding: "12px 20px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  backdropFilter: "blur(10px)"
-}}>
-  <FiMapPin style={{ 
-    marginRight: "10px", 
-    fontSize: "20px",
-    color: "#60A5FA",
-    flexShrink: 0
-  }} />
-  <h2 style={{ 
-    fontSize: "20px", 
-    fontWeight: "600", 
-    margin: 0,
-    color: "#F8FAFC",
-    textAlign: "center"
-  }}>
-    {weather.name}, {weather.sys.country}
-  </h2>
-</div>
-
-            {/* Weather Icon */}
             <div style={{ 
               display: "flex", 
+              alignItems: "center", 
               justifyContent: "center", 
-              marginBottom: "10px" 
+              marginBottom: "20px",
+              background: "rgba(30, 41, 59, 0.6)",
+              padding: "12px 20px",
+              borderRadius: "12px",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px)"
             }}>
-              {getWeatherIcon(weather.weather[0].main)}
+              <FiMapPin style={{ 
+                marginRight: "10px", 
+                fontSize: "20px",
+                color: "#60A5FA",
+                flexShrink: 0
+              }} />
+              <h2 style={{ 
+                fontSize: "20px", 
+                fontWeight: "600", 
+                margin: 0,
+                color: "#F8FAFC",
+                textAlign: "center"
+              }}>
+                {weather.name}, {weather.sys.country}
+              </h2>
             </div>
 
-            {/* Temperature */}
-            <div style={{ textAlign: "center", marginBottom: "10px" }}>
-              <p style={{ 
-                fontSize: "56px", 
-                fontWeight: "800", 
-                margin: "0 0 8px 0",
-                background: "linear-gradient(45deg, #60A5FA, #A78BFA)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}>
-                {Math.round(weather.main.temp)}°C
-              </p>
-              
-              {/* Weather Description */}
-              <p style={{ 
-                fontSize: "18px", 
-                textTransform: "capitalize",
-                margin: "0 0 12px 0",
-                opacity: 0.9,
-                background: "rgba(255, 255, 255, 0.1)",
-                padding: "8px 20px",
-                borderRadius: "20px",
-                display: "inline-block"
-              }}>
-                {weather.weather[0].description}
-              </p>
+            {/* Weather Icon & Temp */}
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "center",
+              marginBottom: "10px",
+              gap: "15px"
+            }}>
+              {getWeatherIcon(weather.weather[0].main)}
+              <div style={{ textAlign: "left" }}>
+                <p style={{ 
+                  fontSize: "56px", 
+                  fontWeight: "800", 
+                  margin: "0",
+                  background: "linear-gradient(45deg, #60A5FA, #A78BFA)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  lineHeight: "1"
+                }}>
+                  {Math.round(weather.main.temp)}°C
+                </p>
+                <p style={{ 
+                  fontSize: "16px", 
+                  margin: "5px 0 0 0",
+                  opacity: 0.8
+                }}>
+                  Feels like {Math.round(weather.main.feels_like)}°C
+                </p>
+              </div>
             </div>
+
+            {/* Weather Description */}
+            <p style={{ 
+              fontSize: "18px", 
+              textTransform: "capitalize",
+              margin: "0 0 20px 0",
+              opacity: 0.9,
+              background: "rgba(255, 255, 255, 0.1)",
+              padding: "8px 20px",
+              borderRadius: "20px",
+              display: "inline-block"
+            }}>
+              {weather.weather[0].description}
+            </p>
 
             {/* High/Low Temp */}
             <div style={{
@@ -420,8 +444,8 @@ export default function App() {
                 border: "1px solid rgba(255, 255, 255, 0.1)"
               }}>
                 <BsThermometerHalf size={28} color="#EF4444" />
-                <p style={{ margin: "12px 0 6px 0", fontSize: "14px", opacity: 0.8 }}>Feels Like</p>
-                <p style={{ margin: 0, fontWeight: "700", fontSize: "20px" }}>{Math.round(weather.main.feels_like)}°C</p>
+                <p style={{ margin: "12px 0 6px 0", fontSize: "14px", opacity: 0.8 }}>Visibility</p>
+                <p style={{ margin: 0, fontWeight: "700", fontSize: "20px" }}>{(weather.visibility / 1000).toFixed(1)} km</p>
               </div>
             </div>
 
